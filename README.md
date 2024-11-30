@@ -51,17 +51,37 @@ Key features:
 
 ## Installation
 
-Each add-on can be installed independently based on your needs:
+First, install PocketGroq:
 
 ```bash
-# Install PocketGroq first
 pip install pocketgroq
+```
 
-# Then install desired add-ons
-pip install pocketgroq-feps
-pip install pocketgroq-longkey
-pip install pocketgroq-literature-review
-pip install pocketgroq-proactive
+Then clone this repository to get the add-ons:
+
+```bash
+git clone https://github.com/jgravelle/pocketgroq-addons.git
+cd pocketgroq-addons
+```
+
+Each add-on can be installed manually from its respective directory:
+
+```bash
+# Install FEPS
+cd FEPS
+pip install -e .
+
+# Install LongKey
+cd ../keyphrase-extraction
+pip install -e .
+
+# Install Literature Review Generator
+cd ../literature-review
+pip install -e .
+
+# Install ProActive Agent
+cd ../proactive-autonomous-agent
+pip install -e .
 ```
 
 ## Quick Start
