@@ -49,6 +49,18 @@ Key features:
 
 [Learn more about ProActive Agent](./proactive-autonomous-agent/README.md)
 
+### 5. PDDL Plan Generation
+A feedback-driven PDDL plan generation system based on research from [arXiv:2412.00300](https://arxiv.org/abs/2412.00300). Enables generation and optimization of PDDL plans using natural language preferences and LLM-based feedback.
+
+Key features:
+- Natural language preference handling
+- Genetic algorithm-based plan optimization
+- LLM-powered reward model for constraint evaluation
+- Support for temporal and state trajectory constraints
+- Built-in preference grounding to symbolic goals
+
+[Learn more about PDDL Plan Generation](./PDDL-plan-generation/README.md)
+
 ## Installation
 
 First, install PocketGroq:
@@ -82,6 +94,10 @@ pip install -e .
 # Install ProActive Agent
 cd ../proactive-autonomous-agent
 pip install -e .
+
+# Install PDDL Plan Generation
+cd ../PDDL-plan-generation
+pip install -e .
 ```
 
 ## Quick Start
@@ -94,6 +110,7 @@ from pocketgroq_feps import enhance_groq_provider
 from pocketgroq_longkey import add_longkey_to_groq
 from literature_review import LiteratureReviewGenerator
 from proactive_agent import ProactiveAutonomousAgent
+from pocketgroq.plan_critic import GroqPlanCritic
 
 # Initialize PocketGroq
 groq = GroqProvider(api_key="your-api-key")
@@ -105,12 +122,14 @@ add_longkey_to_groq(enhanced_groq)
 # Create specialized components
 lit_review = LiteratureReviewGenerator(enhanced_groq)
 proactive_agent = ProactiveAutonomousAgent(enhanced_groq)
+plan_critic = GroqPlanCritic(enhanced_groq)
 
 # Use enhanced capabilities
 keyphrases = enhanced_groq.extract_keyphrases(text)
 review = lit_review.generate_review(pdf_paths)
 async for result in proactive_agent.process_request_proactively(query):
     print(result)
+constraints = plan_critic.generate_plan(problem_file, preferences)
 ```
 
 ## Requirements
@@ -148,6 +167,7 @@ python -m pytest FEPS/test.py
 python -m pytest keyphrase-extraction/test.py
 python -m pytest literature-review/test.py
 python -m pytest proactive-autonomous-agent/tests.py
+python -m pytest PDDL-plan-generation/test.py
 ```
 
 ## License
