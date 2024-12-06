@@ -2,9 +2,11 @@ from pocketgroq import GroqProvider
 from plan_critic import GroqPlanCritic
 import os
 import logging
+import sys
+import time
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Set up logging with more verbose output
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Sample PDDL problem for waterway restoration domain
@@ -38,33 +40,47 @@ SAMPLE_PROBLEM = """
 """
 
 def main():
+    logger.debug("Starting test script...")
+    
+    # Check if GROQ_API_KEY is set
+    if not os.getenv('GROQ_API_KEY'):
+        logger.error("GROQ_API_KEY environment variable is not set")
+        sys.exit(1)
+    
     # Initialize GroqProvider (using API key from environment)
     try:
+        logger.debug("Attempting to initialize GroqProvider...")
         groq = GroqProvider()
+        logger.info("Successfully initialized GroqProvider")
     except Exception as e:
-        logger.error(f"Failed to initialize GroqProvider: {e}")
-        return
-
-    # Create PlanCritic instance
-    plan_critic = GroqPlanCritic(groq)
-
-    # Example preferences from the paper
-    preferences = [
-        "Make sure the scout asset only visits the endpoint once",
-        "We need to clear the route from debris station 0 to the endpoint within 5 hours",
-        "Don't remove any underwater debris"
-    ]
-
-    logger.info("Testing GroqPlanCritic with waterway restoration problem...")
+        logger.error(f"Failed to initialize GroqProvider: {str(e)}")
+        sys.exit(1)
 
     try:
+        # Create PlanCritic instance
+        logger.debug("Creating PlanCritic instance...")
+        plan_critic = GroqPlanCritic(groq)
+        logger.info("Successfully created PlanCritic instance")
+
+        # Example preferences from the paper
+        preferences = [
+            "Make sure the scout asset only visits the endpoint once",
+            "We need to clear the route from debris station 0 to the endpoint within 5 hours",
+            "Don't remove any underwater debris"
+        ]
+
+        logger.info("Testing GroqPlanCritic with waterway restoration problem...")
+
         # Save problem to temporary file
         problem_file = "waterway_problem.pddl"
+        logger.debug(f"Writing problem to temporary file: {problem_file}")
         with open(problem_file, "w") as f:
             f.write(SAMPLE_PROBLEM)
+        logger.info("Successfully wrote problem file")
 
         # Generate plan constraints
         logger.info("Generating plan constraints from preferences...")
+        time.sleep(3)  # Add delay before API call
         constraints_pddl = plan_critic.generate_plan(problem_file, preferences)
 
         logger.info("\nGenerated PDDL Constraints:")
@@ -72,6 +88,7 @@ def main():
 
         # Test constraint grounding
         logger.info("\nTesting preference grounding...")
+        time.sleep(3)  # Add delay before API call
         mid_level_goals = plan_critic.ground_preferences(preferences)
         
         logger.info("Mid-level goals:")
@@ -80,6 +97,7 @@ def main():
 
         # Test population initialization
         logger.info("\nTesting population initialization...")
+        time.sleep(3)  # Add delay before API call
         initial_pop = plan_critic.initialize_population(mid_level_goals, SAMPLE_PROBLEM)
         
         logger.info(f"Generated initial population of {len(initial_pop)} constraint sets")
@@ -89,15 +107,23 @@ def main():
 
         # Test fitness evaluation
         logger.info("\nTesting fitness evaluation...")
+        time.sleep(3)  # Add delay before API call
         fitness = plan_critic.evaluate_fitness(initial_pop[0], preferences)
         logger.info(f"Fitness score of first constraint set: {fitness}")
 
     except Exception as e:
-        logger.error(f"Error during testing: {e}")
+        logger.error(f"Error during testing: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        sys.exit(1)
     finally:
         # Cleanup
         if os.path.exists(problem_file):
-            os.remove(problem_file)
+            try:
+                os.remove(problem_file)
+                logger.debug("Cleaned up temporary problem file")
+            except Exception as e:
+                logger.error(f"Failed to clean up problem file: {str(e)}")
 
 if __name__ == "__main__":
     main()

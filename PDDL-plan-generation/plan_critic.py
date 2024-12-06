@@ -3,6 +3,7 @@
 from typing import List, Dict, Any, Optional
 import logging
 import random
+import time
 from dataclasses import dataclass
 from pocketgroq import GroqProvider
 from pocketgroq.exceptions import GroqAPIError
@@ -31,12 +32,22 @@ class GroqPlanCritic:
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
+        self.last_api_call = 0
         
         self.temporal_operators = ["always", "sometime", "at-most-once", "sometime-before"]
         self.current_population: List[List[PDDLConstraint]] = []
 
+    def _rate_limit(self):
+        """Ensure at least 3 seconds between API calls"""
+        now = time.time()
+        elapsed = now - self.last_api_call
+        if elapsed < 3:
+            time.sleep(3 - elapsed)
+        self.last_api_call = time.time()
+
     def ground_preferences(self, preferences: List[str]) -> List[str]:
         """Convert natural language preferences to mid-level goals using GPT-4."""
+        self._rate_limit()
         prompt = """Convert each planning preference to a mid-level goal that can be expressed in PDDL.
         For example:
         Preference: "Make sure the scout asset only visits the endpoint once"
@@ -51,6 +62,7 @@ class GroqPlanCritic:
 
     def initialize_population(self, mid_level_goals: List[str], problem_file: str) -> List[List[PDDLConstraint]]:
         """Generate initial population of PDDL constraints."""
+        self._rate_limit()
         prompt = """Given these mid-level planning goals and PDDL problem, generate valid PDDL constraints.
         Problem file:
         {}
@@ -147,6 +159,7 @@ class GroqPlanCritic:
 
     def evaluate_fitness(self, constraints: List[PDDLConstraint], feedback: List[str]) -> float:
         """Evaluate fitness of a constraint set against user feedback."""
+        self._rate_limit()
         constraints_pddl = "\n".join(c.to_pddl() for c in constraints)
         
         prompt = f"""Given these PDDL constraints and user feedback, score how well the constraints satisfy the feedback from 0 to 1.
@@ -170,8 +183,11 @@ class GroqPlanCritic:
         """Run genetic algorithm to optimize constraints."""
         for generation in range(max_generations):
             # Evaluate fitness for all individuals
-            fitness_scores = [(constraints, self.evaluate_fitness(constraints, feedback))
-                            for constraints in self.current_population]
+            fitness_scores = []
+            for constraints in self.current_population:
+                self._rate_limit()  # Rate limit between fitness evaluations
+                score = self.evaluate_fitness(constraints, feedback)
+                fitness_scores.append((constraints, score))
             
             # Sort by fitness
             fitness_scores.sort(key=lambda x: x[1], reverse=True)
@@ -207,12 +223,15 @@ class GroqPlanCritic:
     def generate_plan(self, problem_file: str, preferences: List[str]) -> str:
         """Generate a plan that satisfies the given preferences."""
         # Ground natural language preferences to mid-level goals
+        self._rate_limit()
         mid_level_goals = self.ground_preferences(preferences)
         
         # Initialize population
+        self._rate_limit()
         self.initialize_population(mid_level_goals, problem_file)
         
         # Optimize constraints
+        self._rate_limit()
         best_constraints = self.optimize(preferences)
         
         # Convert constraints to PDDL
